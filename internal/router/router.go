@@ -11,6 +11,7 @@ import (
 func Route() {
 	router := chi.NewRouter()
 	router.Use(middleware.Logging)
+	router.Use(middleware.GzipCompress)
 
 	errListen := http.ListenAndServe(":8080", router)
 	if errListen != nil {
