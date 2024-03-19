@@ -1,0 +1,48 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:15.3
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    volumes:
+      # - ./internal/storage/init:/docker-entrypoint-initdb.d
+      - ./internal/storage/migrations:/docker-entrypoint-initdb.d
+      - /tmp/gophermart/db/data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    
+  accrual:
+    build:
+      context: ./
+      dockerfile: ./cmd/accrual/Dockerfile
+    depends_on:
+      - postgres
+    environment:
+      - ACCRUAL_PORT=${ACCRUAL_PORT}
+      - ACCRUAL_ADDRESS=localhost:${ACCRUAL_PORT}
+      - DSN='postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/accrual?sslmode=disable'
+    restart: always
+
+  gophermart:
+      build:
+        context: ./
+        dockerfile: ./cmd/gophermart/Dockerfile
+      ports:
+        - ${GOPHERMART_PORT}:${GOPHERMART_PORT}
+      depends_on:
+        - postgres
+      environment:
+        - GOPHERMART_PORT=${GOPHERMART_PORT}
+        - DATABASE_URI='postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/gophermart?sslmode=disable'
+        - ACCRUAL_SYSTEM_ADDRESS=accrual:${ACCRUAL_PORT}
+      restart: always
