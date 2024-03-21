@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/vitalykrupin/loyalty-system/internal/app"
 	"github.com/vitalykrupin/loyalty-system/internal/router"
 )
 
@@ -13,6 +14,6 @@ func main() {
 }
 
 func run() error {
-	router.Route()
+	router.Route(app.NewApp())
 	return nil
 }
